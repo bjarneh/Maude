@@ -1,0 +1,38 @@
+
+==========================================================================
+What is this?
+==========================================================================
+
+
+Newman's lemma (see further down) represented as a coherent theory,
+converted into an object level rewrite theory.
+I.e. rewriting the assumptions using the rewrite-theory provides
+a proof for the lemma.
+
+It should be noted that the rewrite rules cannot be applied in
+arbitrary order, so a meta-level rewrite theory is needed in
+order to control the rule applications.
+
+
+
+==========================================================================
+Newman's lemmas as a coherent theory:
+==========================================================================
+
+
+  Facts:
+
+      dom(a), dom(b), dom(c), s(a,b), s(a,c)
+
+
+  Axioms:
+
+      s(b,X), s(c,X)         => goal
+      dom(x)                 => e(x,x)
+      e(x,y)                 => e(y,x)
+      e(x,y)                 => s(x,y)
+      r(x,y)                 => s(x,y)
+      s(x,y), s(y,z)         => s(x,z)
+      r(x,y), r(x,z)         => dom(u), s(y,u), s(z,u)
+      r(a,x), s(x,y), s(x,z) => dom(u), s(y,u), s(z,u)
+      s(x,y)                 => e(x,y) ; dom(z), r(x,z), s(z,y)
