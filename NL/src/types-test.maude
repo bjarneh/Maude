@@ -1,0 +1,112 @@
+in types.maude
+
+--- Maude unit-testing, what's this world coming to..
+
+fmod FACTSET-TEST is
+
+pr FACTSET .
+pr STRING .
+pr META-LEVEL .
+
+--- helper func to run tests
+op runTests : -> Bool .
+op printOk  : String Bool Bool -> Bool  .  
+op typeTest : Term Qid -> Bool .
+
+vars T           : Term .
+vars Q           : Qid .
+vars S S2        : String .
+vars OK EXPECT B : Bool .
+
+--- function to see if types are as assumed in FACTSET
+eq typeTest( T, Q ) = 
+     getType(metaReduce(['FACTSET], T)) == Q .
+
+
+ceq printOk(S, OK, EXPECT) = B 
+if B := (OK == EXPECT)
+[ print B " : " S ] .
+
+
+eq runTests =
+
+    printOk("type(b) ==  Const",
+            typeTest(upTerm(b), 'Const ),
+            true)
+    and
+    printOk("type(re(a,b)) ==  Fact",
+            typeTest(upTerm(re(a,b)), 'Fact ),
+            true)
+    and
+    printOk("! type( re(a,b) ) != FactSet",
+            typeTest(upTerm(re(a,b)), 'FactSet ),
+            false)
+    and
+    printOk("type( re(a,b),r(a,b) = FactSet",
+            typeTest(upTerm(re(a,b), r(a,b)), 'FactSet ),
+            true)
+    and
+    printOk("type( nix ) == FactSet",
+            typeTest(upTerm(nix), 'FactSet ),
+            true)
+    and
+    printOk("type( goal ) == Branch",
+            typeTest(upTerm(goal), 'Branch ),
+            true)
+    and
+    printOk("! re(a,b), r(a,b) in nix",
+            (re(a,b), r(a,b) in nix),
+            false)
+    and
+    printOk("! r(a,b) in re(a,b)",
+            (r(a,b) in re(a,b)),
+            false)
+    and
+    printOk("r(a,b) in r(a,b)",
+            (r(a,b) in r(a,b)),
+            true)
+    and
+    printOk("! r(a,b) in nix",
+            (r(a,b) in nix),
+            false)
+    and
+    printOk("! nix in r(a,b)",
+            (nix in r(a,b)),
+            false)
+    and
+    printOk("r(a,b) !in re(a,b)",
+            (r(a,b) ∉ re(a,b)),
+            true)
+    and
+    printOk("r(a,b) !subset re(a,b)",
+            (r(a,b) ⊄ re(a,b)),
+            true)
+    and
+    printOk("r(a,b) subset r(a,b)",
+            (r(a,b) ⊂ r(a,b)),
+            true)
+    and
+    printOk("r(a,b) subset r(a,b), re(b,a)",
+            (r(a,b) ⊂ r(a,b), re(b,a)),
+            true)
+    and
+    printOk("! nix !subset re(a,b)",
+            (nix ⊄ re(a,b)),
+            false)
+    and
+    printOk("! b == 1",
+            (b == 1),
+            false)
+    and
+    printOk("! r(a,b) !in re(a,b), r(a,b)",
+            (r(a,b) ∉ re(a,b), r(a,b)),
+            false) .
+
+endfm
+
+set print color on .
+set print attribute on .
+
+reduce in FACTSET-TEST : runTests .
+
+q

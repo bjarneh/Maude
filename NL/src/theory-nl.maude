@@ -1,0 +1,277 @@
+in types.maude
+
+--- NEWMAN'S LEMMA
+mod THEORY-NL is
+
+pr INT .
+pr RANDOM .
+pr COUNTER .
+pr FACTSET .
+pr META-LEVEL .
+
+op error              : -> [State] .
+
+vars N M              : Nat .
+vars X Y Z YZ U FRESH : Const .
+vars FS               : FactSet .
+vars NEXT             : Branch .
+vars REMAINING        : BranchList .
+
+
+----  Theory:
+----
+----  true                   => dom(a), dom(b), dom(c), s(a,b), s(a,c)
+----  s(b,X), s(c,X)         => goal .
+----  dom(x)                 => e(x,x) . 1)
+----  e(x,y)                 => e(y,x) . 2)
+----  e(x,y)                 => s(x,y) . 3)
+----  r(x,y)                 => s(x,y) . 4)
+----  s(x,y), s(y,z)         => s(x,z) . 5)
+----  r(x,y), r(x,z)         => dom(u), s(y,u), s(z,u) . 6)
+----  r(a,x), s(x,y), s(x,z) => dom(u), s(y,u), s(z,u) . 7)
+----  s(x,y)                 => e(x,y) ; dom(z),r(x,z),s(z,y) .  8)
+
+
+----  Rule 5) has a unifying substitution, since
+----  s(x,y) and s(y,z) unify, i.e. we should add
+----  a new rule here if it wasn't for the unifying
+----  substitution itself, i.e.
+---- 
+----  unify s(X:Const,Y:Const) =? s(Y:Const,Z:Const)
+---- 
+----  Solution 1
+----  X:Const --> #1:Const
+----  Y:Const --> #1:Const
+----  Z:Const --> #1:Const
+---- 
+----  If we apply this to our terms we would get:
+---- 
+----  s(x1,x1) => s(x1,x1)
+---- 
+----  which is pointless since it introduces itself.
+
+
+
+
+
+----  s(b,X), s(c,X) => goal .
+
+rl[goal-rule]:
+    < s(b, X), s(c, X), FS | N > @ NEXT :: REMAINING 
+=> --------------------------------------------------
+     NEXT @ REMAINING
+[ print "[goal] s(b, " X "), s(c, " X ") => goal @ " NEXT ] .
+
+
+rl[goal-rule]:
+    < s(b, X), s(c, X), FS | N > @ goal
+=> --------------------------------------------------
+     goal @ goal
+[ print "[goal] s(b, " X "), s(c, " X ") => goal " ] .
+
+
+
+
+
+
+----  dom(x) => e(x,x)
+
+crl[r1]:
+    < dom(X), FS | N > @ REMAINING
+=> ----------------------------------------
+    < dom(X), e(X,X), FS | N > @ REMAINING
+if e(X,X) ∉ FS 
+[ print "[r1]   dom(" X ") => e(" X "," X ") " ] .
+
+
+---- Used by Colog/CL.pl to introduce new constants,
+---- not strictly necessary, but much faster..
+
+---- dom(x) => e(x,x) 
+
+crl[r1x]:
+    < FS | N > @ REMAINING
+=> ---------------------------------------------------------
+    < FS, dom(FRESH), e(FRESH, FRESH) | FRESH > @ REMAINING
+if FRESH := N + 1
+[ print "[new]  dom(" FRESH ") => e(" FRESH "," FRESH ")" ] .
+
+
+
+----  e(x,y) => e(y,x)
+
+crl[r2]:
+    < e(X,Y), FS | N > @ REMAINING
+=> ----------------------------------------
+    < e(X,Y), e(Y,X), FS | N > @ REMAINING
+if e(Y,X) ∉ e(X,Y), FS
+[ print "[r2]   e(" X "," Y ") => e(" Y "," X ") " ] .
+
+
+
+----  e(x,y) => s(x,y) .
+
+crl[r3]:
+    < e(X,Y), FS | N > @ REMAINING
+=> ----------------------------------------
+    < e(X,Y), s(X,Y), FS | N > @ REMAINING
+if s(X,Y) ∉ FS
+[ print "[r3]   e(" X "," Y ") => s(" X "," Y ") " ] .
+
+
+
+----  r(x,y) => s(x,y) .
+
+crl[r4]:
+    < r(X,Y), FS | N > @ REMAINING
+=> ----------------------------------------
+    < r(X,Y), s(X,Y), FS | N > @ REMAINING
+if s(X,Y) ∉ FS
+[ print "[r4]   r(" X "," Y ") => s(" X "," Y ") " ] .
+
+
+----  see comment on rule 5 ^
+----  s(x,y), s(y,z) => s(x,z) .
+
+crl[r5]:
+    < s(X,Y), s(Y,Z), FS | N > @ REMAINING
+=> ------------------------------------------------
+    < s(X,Y), s(Y,Z), s(X,Z), FS | N > @ REMAINING
+if s(X,Z) ∉ FS, s(Y,Z), s(X,Y)
+[ print "[r5]   s(" X "," Y "), s(" Y "," Z ") => s(" X "," Z ") " ] .
+
+
+----  NOTE: the original rule has been split up
+---- 
+----  r(x,yz) => dom(u), s(yz,u)
+
+crl[r61]:
+    < r(X,YZ), dom(U), s(YZ,U),  FS | N > @ REMAINING
+=> -------------------------------------------------------------
+    < r(X,YZ), dom(U), s(YZ,U), r61(X,YZ), FS | N > @ REMAINING
+if r61(X,YZ) ∉ FS
+[ print "[r61]  r(" X "," YZ "), dom(" U "), s(" YZ "," U ") => r61(" X "," YZ ") "] .
+
+
+----  this cannot be attempted prior to r61
+
+crl[r611]:
+    < r(X,YZ),  FS | N > @ REMAINING
+=> --------------------------------------------------------------
+    < r(X,YZ), dom(FRESH), s(YZ,FRESH), FS | FRESH > @ REMAINING
+if r61(X,YZ) ∉ FS
+/\ FRESH := N + 1
+[ print "[r611] r(" X "," YZ ") => dom(" FRESH "), s(" YZ "," FRESH ") " ] .
+
+
+
+----  r(x,y),r(x,z)  => dom(u), s(y,u), s(z,u) .
+
+crl[r62]:
+    < r(X,Y), r(X,Z), dom(U), s(Y,U), s(Z,U), FS | N > @ REMAINING
+=> ----------------------------------------------------------------------------
+    < r(X,Y), r(X,Z), dom(U), s(Y,U), s(Z,U), r62(X,Y,Z), FS | N > @ REMAINING
+if r62(X,Y,Z) ∉ FS
+[ print "[r62]  r(" X "," Y "), r(" X "," Z "), dom(" U "), s(" Y "," U "), s(" Z "," U ") => r62(" X "," Y "," Z ") " ] .
+
+
+----  this cannot be attempted prior to r62
+
+crl[r621]:
+    < r(X,Y), r(X,Z), FS | N > @ REMAINING
+=> --------------------------------------------------------------------------------
+    < r(X,Y), r(X,Z), dom(FRESH), s(Y,FRESH), s(Z,FRESH), FS | FRESH > @ REMAINING
+if r62(X,Y,Z) ∉ FS
+/\ FRESH := N + 1
+[ print "[r621] r(" X "," Y "), r(" X "," Z ") => dom(" FRESH "), s(" Y "," FRESH "), s(" Z "," FRESH ") " ] .
+
+
+
+----  the original rule has been split up
+---- 
+----  r(a,x), s(x,yz)  => dom(u), s(yz,u) .
+
+crl[r71]:
+    < r(a,X), s(X,YZ), dom(U), s(YZ,U), FS | N > @ REMAINING
+=> ---------------------------------------------------------------------
+    < r(a,X), s(X,YZ), dom(U), s(YZ,U), r71(X,YZ), FS | N > @ REMAINING
+if r71(X,YZ) ∉ FS
+[ print "[r71]  r(a," X "), s(" X "," YZ "), dom(" U "), s(" YZ "," U ") => r71(" X "," YZ ") " ] .
+
+
+----  this cannot be attempted prior to r71
+
+crl[r711]:
+    < r(a,X), s(X,YZ), FS | N > @ REMAINING
+=> ----------------------------------------------------------------------
+    < r(a,X), s(X,YZ), dom(FRESH), s(YZ,FRESH), FS | FRESH > @ REMAINING
+if r71(X,YZ) ∉ FS
+/\ FRESH := N + 1
+[ print "[r711] r(a," X "), s(" X "," YZ ") => dom(" FRESH "), s(" YZ "," FRESH ") " ] .
+
+
+----  r(a,x), s(x,y), s(x,z) => dom(u), s(y,u), s(z,u) .
+crl[r72]:
+    < r(a,X), s(X,Y), s(X,Z), dom(U), s(Y,U), s(Z,U), FS | N > @ REMAINING
+=> ------------------------------------------------------------------------------------
+    < r(a,X), s(X,Y), s(X,Z), dom(U), s(Y,U), s(Z,U), r72(X,Y,Z), FS | N > @ REMAINING
+if r72(X,Y,Z) ∉ FS
+[ print "[r72]  r(a," X "), s(" X "," Y "), s(" X "," Z "), dom(" U "), s(" Y "," U "), s(" Z "," U ") => r72(" X "," Y "," Z ") "] .
+
+----  this cannot be attempted prior to r72
+
+crl[r721]:
+    < r(a,X), s(X,Y), s(X,Z), FS | N > @ REMAINING
+=> ----------------------------------------------------------------------------------------
+    < r(a,X), s(X,Y), s(X,Z), dom(FRESH), s(Y,FRESH), s(Z,FRESH), FS | FRESH > @ REMAINING
+if r72(X,Y,Z) ∉ FS
+/\ FRESH := N + 1
+[ print "[r721] r(a," X "), s(" X "," Y "), s(" X "," Z ") => dom(" FRESH "), s(" Y "," FRESH "), s(" Z "," FRESH ")  :  r72(" X "," Y "," Z ") ∉ FS" ] .
+
+
+----  s(x,y)  => e(x,y); dom(z), r(x,z), s(z,y)
+crl[r81]:
+    < s(X,Y), e(X,Y), FS | N > @ REMAINING
+=> --------------------------------------------------
+    < s(X,Y), e(X,Y), r81(X,Y), FS | N > @ REMAINING
+if r81(X,Y) ∉ FS
+[ print "[r81]  s(" X "," Y "), e(" X "," Y ") => r81(" X "," Y ") " ] .
+
+
+crl[r82]:
+    < s(X,Y), dom(Z), r(X,Z), s(Z,Y), FS | N > @ REMAINING
+=> ------------------------------------------------------------------
+    < s(X,Y), dom(Z), r(X,Z), s(Z,Y), r82(X,Y), FS | N > @ REMAINING
+if r82(X,Y) ∉ FS
+[ print "[r82]  s(" X "," Y "), dom(" Z "), r(" X "," Z "), s(" Z "," Y ") => r82(" X "," Y ") " ] .
+
+
+
+----  when r82(X,Y) is inside the factset, we have a match already for
+----
+----        dom(FRESH), r(X,FRESH), s(FRESH,Y)
+----
+----  inside out factset, and we can avoid the additional branch.
+
+crl[r83a]:
+    < s(X,Y), FS | N > @ REMAINING
+=> -------------------------------------------------------------------------
+    < s(X,Y), e(X,Y), FS | N > @ REMAINING
+if r81(X,Y) ∉ FS
+/\ r82(X,Y) ∈ FS
+/\ e(X,Y) ∉  FS
+[ print "[r83a] s(" X "," Y ") => e(" X "," Y ")" ] .
+
+
+crl[r83b]:
+    < s(X,Y), FS | N > @ REMAINING
+=> -------------------------------------------------------------------------
+    < s(X,Y), e(X,Y), FS | FRESH > @ 
+    < s(X,Y), dom(FRESH), r(X,FRESH), s(FRESH,Y), FS | FRESH > :: REMAINING
+if r81(X,Y) ∉ FS
+/\ r82(X,Y) ∉ FS
+/\ FRESH := N + 1
+[ print "[r83b] s(" X "," Y ") => dom(" FRESH "), r(" X "," FRESH "), s(" FRESH "," Y ")  \\/  e(" X "," Y ") " ] .
+
+
+endm

@@ -1,0 +1,260 @@
+in theory-nl.maude
+
+mod TACTIC is
+
+pr INT .
+pr BOOL .
+pr THEORY-NL .
+pr META-LEVEL .
+
+
+sort QLList .               --- QidListList :-)
+subsort QidList < QLList .
+
+sort RLM .                  --- Rule match
+sort RLMList .
+subsort RLM < RLMList .
+
+op _¤_          : QLList QLList -> QLList [ assoc ] .
+
+op «_|_»        : Nat QLList -> RLM .
+op nil          : -> RLMList .
+op __           : RLMList RLMList -> RLMList [ assoc id: nil ] .
+
+                
+op startOver    : Module Term QLList QLList Nat -> Term  .
+op applyRule    : Module Term QidList -> Term .
+op exhaustRL    : Module Term QidList -> Term .
+op exhaustCplx  : Module Term RLM -> Term .
+op control      : Term RLMList -> Term .
+
+                
+op easyModule   : -> Module .
+op fullModule   : -> Module .
+op stripRules   : Module QidList -> Module .
+op stripRules   : RuleSet QidList -> RuleSet .
+op missingLabel : AttrSet QidList -> Bool .
+op applyEasyRLS : Term -> Term .
+
+
+vars N          : Nat .
+vars NZ         : NzNat .
+var  M          : Module .
+vars T TM       : Term .
+vars Q Q2       : Qid .
+var  QL         : QidList .
+vars QLL COPY   : QLList .
+var  OK         : Bool .
+vars SMPL CPLX  : QLList .
+var  SPLIT      : QLList .
+var  RESULT     : ResultTriple? .
+
+*** originally taken prelude.maude
+var  PDL        : ParameterDeclList .
+var  H          : Header .
+var  IL         : ImportList .
+var  SS         : SortSet .
+var  SSDS       : SubsortDeclSet .
+var  OPDS       : OpDeclSet .
+var  MAS        : MembAxSet .
+var  EQS        : EquationSet .
+var  RLS        : RuleSet .
+var  ATRS       : AttrSet .
+var  COND       : Condition .
+
+
+--- the theory with all "complex" rules filtered out
+eq  easyModule =  stripRules(upModule('THEORY-NL, false), 
+                  'r1x 'r61 'r611 'r62 'r621 'r71 'r711 'r72 'r721 'r81 'r82 'r83a 'r83b) .
+--- the theory with all the rules in place
+eq  fullModule =  upModule('THEORY-NL, false) .
+
+
+--- return a module with undesired rules stripped out
+eq  stripRules(mod Q is IL sorts SS . SSDS OPDS MAS EQS RLS endm, QL) = 
+mod Q is IL sorts SS . SSDS OPDS MAS EQS 
+    stripRules(RLS, QL)
+endm .
+
+eq  stripRules(mod Q{PDL} is IL sorts SS . SSDS OPDS MAS EQS RLS endm, QL) =
+mod Q{PDL} is IL sorts SS . SSDS OPDS MAS EQS 
+    stripRules(RLS, QL) 
+endm .
+
+eq  stripRules(th Q is IL sorts SS . SSDS OPDS MAS EQS RLS endth, QL) =
+th Q is IL sorts SS . SSDS OPDS MAS EQS 
+    stripRules(RLS,QL) 
+endth .
+
+
+--- strip out all rules named in QL
+eq  stripRules( none, QL) = none . --- base
+
+eq  stripRules( rl T => TM [ ATRS ] . RLS, QL) = 
+    if( missingLabel( ATRS, QL ) ) then
+      ( rl T => TM [ ATRS ] . ) stripRules( RLS, QL ) 
+    else
+      stripRules( RLS, QL )
+    fi .
+
+eq  stripRules( crl T => TM if COND [ ATRS ] . RLS, QL) = 
+    if( missingLabel( ATRS, QL ) ) then
+      ( crl T => TM if COND [ ATRS ] . ) stripRules( RLS, QL ) 
+    else
+      stripRules( RLS, QL )
+    fi .
+
+
+--- does a rule's attrset contain an undesired label?
+eq  missingLabel( label(Q) ATRS, Q QL ) = false .
+ceq missingLabel( label(Q) ATRS, Q2 QL ) = 
+    missingLabel( label(Q) ATRS, QL )
+if Q =/= Q2 .
+
+eq  missingLabel( ATRS, nil ) = true [owise] .
+
+
+
+
+--- NOTE: for all strategies you can use a negative
+--- NOTE: number to get infinite rewrites (last parameter).
+
+
+---- strategy that always tries to use a prioritized list
+
+eq  startOver(M, T, QLL,  COPY, 0)   = T .   --- base case [ halt ]
+ceq startOver(M, T, nil,  COPY, N)   =       --- base case [ copy qids ]
+    startOver(M, T, COPY, COPY, N) if COPY =/= nil .
+
+--- apply last qid list
+eq  startOver(M, T, QL, COPY, s(N))  = 
+    startOver(M, exhaustRL(M, T, QL), nil, COPY, N ) .
+
+ceq startOver(M, T, QL ¤ QLL, COPY, s(N)) =
+    if( T == TM ) then
+        startOver(M, T, QLL, COPY, N )
+    else
+        startOver(M, TM, COPY, COPY, N )
+    fi
+if TM := exhaustRL(M, T, QL) .
+
+
+eq  applyRule(M, T, nil) = T . --- base case [ halt ]
+ceq applyRule(M, T, Q QL) =
+    if(RESULT :: ResultTriple) then
+        applyRule(M, getTerm(RESULT), QL)
+    else
+        applyRule(M, T, QL)
+    fi
+if  RESULT := metaApply(M, T, Q, none, 0) .
+
+
+--- use a rule as long as we still have matches for all but last qid.
+eq  exhaustRL(M, T, nil) = T . --- base case [ halt ]
+eq  exhaustRL(M, T, Q)   =     --- base case [ last label ]
+    applyRule(M, T, Q) .
+ceq exhaustRL(M, T, Q QL) =
+    if(RESULT :: ResultTriple) then
+        exhaustRL(M, getTerm(RESULT), Q QL)
+    else
+        exhaustRL(M, T, QL)
+    fi
+if  RESULT := metaApply(M, T, Q, none, 0) [owise] .
+
+    
+
+--- apply all rules which do not introduce constants or split
+eq  applyEasyRLS(T) = getTerm(metaRewrite(easyModule, T, unbounded)) .
+
+
+--- apply simple rules as long as possible, then apply a complex
+--- rule from the RLM list, i.e. where we choose both rule and which
+--- match to apply, i.e. by skipping x-rewrites etc.
+
+vars RL1 RL2 : RLM .
+vars RLML    : RLMList .
+
+eq  control(T, nil) = applyEasyRLS(T) .
+
+ceq control(T, RL1 RLML ) =
+    if( TM == '0.Zero ) then
+        control(T, RLML)
+    else
+        control(TM, RLML)
+    fi
+if TM := exhaustCplx(fullModule, applyEasyRLS(T), RL1 ) .
+
+
+--- apply a complex rule, i.e. first apply the pre-conditionianal-rules
+--- then apply the actual rule after skipping N matches.
+ceq exhaustCplx(M, T, « N | Q » )    = 
+    if(RESULT :: ResultTriple) then
+        getTerm(RESULT)
+    else
+        '0.Zero --- error state, indicating that we cannot skip N matches
+    fi
+if RESULT := metaApply(M, T, Q, none, N) .
+
+
+ceq exhaustCplx(M, T, « N | Q QL » ) = 
+    if(RESULT :: ResultTriple) then
+        exhaustCplx(M, getTerm(RESULT), « N | Q QL » )
+    else
+        exhaustCplx(M, T, « N | QL » )
+    fi
+if QL =/= nil
+/\ RESULT := metaApply(M, T, Q, none, 0) .
+
+
+
+endm
+
+---- set trace on .
+---- a bit of testing here..
+set print attribute on .
+
+
+
+red downTerm(control(
+    upTerm(
+                    < dom(a), dom(b), dom(c), s(a,b), s(a,c) | 1 > @ goal 
+    ),
+                     « 1 | 'r62 'r621 » 
+                     « 5 | 'r72 'r721 » 
+                     « 0 | 'r81 'r82 'r83a » 
+                     « 0 | 'r81 'r82 'r83b » 
+                     « 1 | 'r62 'r621 » 
+                     « 0 | 'r72 'r721 » 
+                     « 1 | 'r72 'r721 » 
+                     « 0 | 'r81 'r82 'r83a » 
+), error) .
+
+
+
+
+red startOver(
+    fullModule, 
+           upTerm(
+                    < dom(a), dom(b), dom(c), s(a,b), s(a,c) | 1 > @ goal 
+           ),
+            nil 
+    ,
+            'goal-rule ¤
+            'r1 ¤
+            'r2 ¤
+            'r3 ¤
+            'r4 ¤
+            'r5 ¤
+            'r61 'r611 ¤
+            'r62 'r621 ¤
+            'r71 'r711 ¤
+            'r81 'r82 'r83a ¤
+            'r72 'r721 ¤
+            'r81 'r82 'r83b ¤
+            'r1x
+    ,
+    200
+) .
+
+
+q

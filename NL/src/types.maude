@@ -1,0 +1,111 @@
+fmod FACTSET is
+
+pr QID .
+pr BOOL .
+pr INT .
+pr META-LEVEL .
+
+sort Fact .           --- predicate
+sort Const .          --- constant
+subsort Nat < Const . --- numbers are constants
+
+
+---- must be generated dynamically
+ops a b c d z : -> Const .
+
+---- must be generated dynamically
+op dom  : Const       -> Fact .
+op e    : Const Const -> Fact .
+op r    : Const Const -> Fact .
+op re   : Const Const -> Fact .
+op p    : Const -> Fact .
+op q    : Const Const -> Fact .
+op s    : Const Const -> Fact .
+
+---- must be generated dynamically
+op r1   : Const -> Fact .
+op r61  : Const Const -> Fact .
+op r62  : Const Const Const -> Fact .
+op r71  : Const Const -> Fact .
+op r72  : Const Const Const -> Fact .
+op r81  : Const Const -> Fact .
+op r82  : Const Const -> Fact .
+
+
+--- a fact is also a factset
+sort FactSet .
+subsort Fact < FactSet .
+
+op  nix  : -> FactSet [ctor] .
+op  _,_  : FactSet FactSet -> FactSet [id: nix assoc comm] .
+
+
+--- prover operates on states, made up by branches
+sort Branch .
+sort BranchList .
+subsort Branch < BranchList .
+
+op   goal  : -> Branch .
+op  <_|_>  : FactSet Nat -> Branch .
+op  _::_   : BranchList BranchList -> BranchList [assoc format(d b o d) ] .
+
+
+--- a state consists of a current branch, plus a list of remaining
+sort State .
+
+op  qed  : -> State .
+op  _@_  : Branch BranchList -> State [ format(d y o d) ] .
+
+op len   : BranchList -> Nat .
+
+
+---- dirty tricks
+eq goal :: goal = goal .
+
+eq goal @ goal = qed .
+
+
+--- unicode functions
+op _in_ : Fact FactSet    -> Bool .  
+op _∈_  : Fact FactSet    -> Bool .  --- alias for in
+op _∉_  : Fact FactSet    -> Bool .  --- same as not ∈
+op len  : FactSet         -> Nat  .
+op _⊂_  : FactSet FactSet -> Bool .  --- subset
+op _⊄_  : FactSet FactSet -> Bool .  --- a ! subset b
+
+vars F1 F2   : Fact .
+vars FS1 FS2 : FactSet .
+vars BR      : Branch .
+vars BL      : BranchList .
+
+--- Turns the FactSet into a Maude set, i.e.
+--- associative commutative list with no duplicates
+eq F1, F1 = F1 .
+
+eq nix in FS1         = false .
+eq FS1 in nix         = false .
+eq F1 in (F1, FS1)    = true .
+eq F1 in FS1          = false [owise] .
+
+--- unicode fancy equations
+eq F1 ∈ FS1           = F1 in FS1 .
+eq F1 ∉ FS1           = not (F1 in FS1) .
+
+eq nix ⊂ FS1          = true .
+eq F1, FS1 ⊂ F1, FS2  = FS1 ⊂ FS2 .
+eq F1, FS1 ⊂ nix      = false .
+
+eq nix ⊄ FS2          = false .
+eq F1, FS1 ⊄ FS2      = if (F1 ∉ FS2) then
+                           true
+                        else
+                           FS1 ⊄ FS2
+                        fi .
+
+eq len( nix )         = 0 .
+eq len( F1, FS1 )     = 1 + len(FS1) .
+
+eq len( goal )        = 0 .
+eq len( BR :: BL )    = 1 + len(BL) .
+
+endfm
