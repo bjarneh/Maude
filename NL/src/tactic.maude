@@ -11,8 +11,8 @@ pr META-LEVEL .
 sort QLList .               --- QidListList :-)
 subsort QidList < QLList .
 
-sort RLM .                  --- Rule match
-sort RLMList .
+sort RLM .                  --- RuLe Match
+sort RLMList .              --- RuLe Match List
 subsort RLM < RLMList .
 
 op _¤_          : QLList QLList -> QLList [ assoc ] .
@@ -51,7 +51,7 @@ var  SPLIT      : QLList .
 var  RESULT     : ResultTriple? .
 var  FS         : FactSet .
 
-*** originally taken prelude.maude
+--- originally taken prelude.maude
 var  PDL        : ParameterDeclList .
 var  H          : Header .
 var  IL         : ImportList .
@@ -118,11 +118,7 @@ eq  missingLabel( ATRS, nil ) = true [owise] .
 
 
 
---- NOTE: for all strategies you can use a negative
---- NOTE: number to get infinite rewrites (last parameter).
-
-
----- strategy that always tries to use a prioritized list
+--- strategy that always tries to use a prioritized list
 
 eq  startOver(M, T, QLL,  COPY, 0)   = T .   --- base case [ halt ]
 ceq startOver(M, T, nil,  COPY, N)   =       --- base case [ copy qids ]
@@ -241,6 +237,7 @@ endm
 ---- to see what's going on
 set print attribute on .
 
+---- rewrite the initial factset of Newman's lemma
 red runStartOver( dom(a), dom(b), dom(c), s(a,b), s(a,c), 200 ) .
 
 q
