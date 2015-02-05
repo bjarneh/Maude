@@ -10,10 +10,10 @@ sort Const .          --- constant
 subsort Nat < Const . --- numbers are constants
 
 
----- must be generated dynamically
-ops a b c d z : -> Const .
+--- constants taken from the input theory [rest are numbers]
+ops a b c : -> Const .
 
----- must be generated dynamically
+--- predicates taken from the input theory
 op dom  : Const       -> Fact .
 op e    : Const Const -> Fact .
 op r    : Const Const -> Fact .
@@ -22,7 +22,9 @@ op p    : Const -> Fact .
 op q    : Const Const -> Fact .
 op s    : Const Const -> Fact .
 
----- must be generated dynamically
+--- new predicates which not part of input theory
+--- these are used to indicate that the factset already
+--- contains matching substitutions for different constants
 op r1   : Const -> Fact .
 op r61  : Const Const -> Fact .
 op r62  : Const Const Const -> Fact .
@@ -61,9 +63,7 @@ op len   : BranchList -> Nat .
 
 ---- dirty tricks
 eq goal :: goal = goal .
-
-eq goal @ goal = qed .
-
+eq goal @ goal  = qed .
 
 --- unicode functions
 op _in_ : Fact FactSet    -> Bool .  
