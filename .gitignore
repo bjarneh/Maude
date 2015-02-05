@@ -1,2 +1,4 @@
+.hgignore
+.hg/*
 NL/paper/*
 
