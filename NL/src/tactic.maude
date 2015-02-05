@@ -27,6 +27,7 @@ op applyRule    : Module Term QidList -> Term .
 op exhaustRL    : Module Term QidList -> Term .
 op exhaustCplx  : Module Term RLM -> Term .
 op control      : Term RLMList -> Term .
+op runStartOver : FactSet Nat -> [State] .
 
                 
 op easyModule   : -> Module .
@@ -48,6 +49,7 @@ var  OK         : Bool .
 vars SMPL CPLX  : QLList .
 var  SPLIT      : QLList .
 var  RESULT     : ResultTriple? .
+var  FS         : FactSet .
 
 *** originally taken prelude.maude
 var  PDL        : ParameterDeclList .
@@ -207,54 +209,38 @@ if QL =/= nil
 
 
 
+--- Apply the startOver strategy to an initial factset limited to N rewrites
+eq  runStartOver( FS, N ) =
+        downTerm(startOver(
+            fullModule, 
+                   upTerm(
+                            < FS | 1 > @ goal 
+                   ),
+                    nil 
+            ,
+                    'goal-rule ¤
+                    'r1 ¤
+                    'r2 ¤
+                    'r3 ¤
+                    'r4 ¤
+                    'r5 ¤
+                    'r61 'r611 ¤
+                    'r62 'r621 ¤
+                    'r71 'r711 ¤
+                    'r81 'r82 'r83a ¤
+                    'r72 'r721 ¤
+                    'r81 'r82 'r83b ¤
+                    'r1x
+            ,
+            N
+        ), error) .
+
+
 endm
 
----- set trace on .
----- a bit of testing here..
+---- to see what's going on
 set print attribute on .
 
-
-
-red downTerm(control(
-    upTerm(
-                    < dom(a), dom(b), dom(c), s(a,b), s(a,c) | 1 > @ goal 
-    ),
-                     « 1 | 'r62 'r621 » 
-                     « 5 | 'r72 'r721 » 
-                     « 0 | 'r81 'r82 'r83a » 
-                     « 0 | 'r81 'r82 'r83b » 
-                     « 1 | 'r62 'r621 » 
-                     « 0 | 'r72 'r721 » 
-                     « 1 | 'r72 'r721 » 
-                     « 0 | 'r81 'r82 'r83a » 
-), error) .
-
-
-
-
-red startOver(
-    fullModule, 
-           upTerm(
-                    < dom(a), dom(b), dom(c), s(a,b), s(a,c) | 1 > @ goal 
-           ),
-            nil 
-    ,
-            'goal-rule ¤
-            'r1 ¤
-            'r2 ¤
-            'r3 ¤
-            'r4 ¤
-            'r5 ¤
-            'r61 'r611 ¤
-            'r62 'r621 ¤
-            'r71 'r711 ¤
-            'r81 'r82 'r83a ¤
-            'r72 'r721 ¤
-            'r81 'r82 'r83b ¤
-            'r1x
-    ,
-    200
-) .
-
+red runStartOver( dom(a), dom(b), dom(c), s(a,b), s(a,c), 200 ) .
 
 q
