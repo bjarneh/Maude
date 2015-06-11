@@ -49,6 +49,8 @@ rl [4]:  q(X,Y) => q(Y,X) ∧ q(X,Y)
          [ print "[4] q(" X "," Y ") => q(" Y "," X ")" ] .
 rl [5]:  q(X,Y) ∧ q(Y,X) => false
          [ print "[5] q(" X "," Y ") ∧ q(" Y "," X ") => goal " ] .
+rl [5]:  q(X,X) => false
+         [ print "[5] q(" X "," X ") => goal " ] .
 
 endm
 
