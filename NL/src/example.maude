@@ -1,0 +1,86 @@
+fmod FACT is
+
+pr INT .
+pr BOOL .
+
+sort Fact .           ---- Predicate
+sort Const .          ---- Constant
+subsort Int < Const . ---- Constants are numbers
+
+subsort Fact < Bool . ---- Predicates are boolean
+
+---- Predicates taken from the example theory
+
+op p : Const -> Fact .
+op z : Const Const -> Fact .
+op q : Const Const -> Fact .
+
+---- fresh variables
+op f : Const -> Const .
+
+
+---- Good looking aliases for and / or
+op _∧_ : Bool Bool -> Bool [assoc comm prec 55] .
+op _∨_ : Bool Bool -> Bool [assoc comm prec 59] .
+
+vars B1 B2 : Bool .
+eq B1 ∨ B1 = B1 or B1 .
+eq B1 ∧ B1 = B1 and B1 .
+
+---- A false on a branch closes it
+eq p(C:Const) ∧ false = false .
+eq z(C1:Const, C2:Const) ∧ false = false .
+eq q(C1:Const, C2:Const) ∧ false = false .
+
+endfm
+
+mod CL is
+pr FACT .
+
+var X Y Z : Const .
+
+rl [1]:  true => p(1)
+         [ print "[1] true => p(1)" ] .
+rl [2]:  p(X) => p(X) ∧ z(X,X)
+         [ print "[2] p(" X ") => z(" X "," X ")" ] .
+rl [3]:  z(X,X) => q(X, f(X)) ∧ z(X,X) ∨ q(X, f(f(X))) ∧ z(X,X)
+         [print "[3] z(" X "," X ") => q(" X ", f(" X ")) ∨ q(" X ", f(f(" X "))) " ] .
+rl [4]:  q(X,Y) => q(Y,X) ∧ q(X,Y)
+         [ print "[4] q(" X "," Y ") => q(" Y "," X ")" ] .
+rl [5]:  q(X,Y) ∧ q(Y,X) => false
+         [ print "[5] q(" X "," Y ") ∧ q(" Y "," X ") => goal " ] .
+
+endm
+
+
+mod CLSTRAT is
+
+pr CL .
+pr META-LEVEL .
+
+var M  : Module .
+var T  : Term .
+var DT : Bool .
+var Q  : Qid .
+var QL : QidList .
+var R4 : Result4Tuple? .
+
+op applyRules : Module Term QidList -> Term .
+
+eq applyRules(M, T, nil)   = T .
+ceq applyRules(M, T, Q QL) =
+    if(R4 :: Result4Tuple) then
+        applyRules(M, getTerm(metaReduce(M, getTerm(R4))), QL)
+    else
+        applyRules(M, T, QL)
+    fi
+if R4 := metaXapply(M, T, Q, none, 0, unbounded, 0) .
+
+endm
+
+set print attribute on .
+
+reduce in CLSTRAT : 
+ downTerm(applyRules(['CLSTRAT], upTerm(true), '1 '2 '3 '4 '5 '4 '5), B:Bool) .
+
+q
