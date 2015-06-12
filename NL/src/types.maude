@@ -5,15 +5,15 @@ pr BOOL .
 pr INT .
 pr META-LEVEL .
 
-sort Fact .           --- predicate
-sort Const .          --- constant
-subsort Nat < Const . --- numbers are constants
+sort Fact .           --- Predicate
+sort Const .          --- Constant
+subsort Nat < Const . --- Constants are numbers
 
 
---- constants taken from the input theory [rest are numbers]
+--- Constants taken from the input theory [rest are numbers]
 ops a b c : -> Const .
 
---- predicates taken from the input theory
+--- Predicates taken from the input theory
 op dom  : Const       -> Fact .
 op e    : Const Const -> Fact .
 op r    : Const Const -> Fact .
@@ -22,8 +22,8 @@ op p    : Const -> Fact .
 op q    : Const Const -> Fact .
 op s    : Const Const -> Fact .
 
---- new predicates which not part of input theory
---- these are used to indicate that the factset already
+--- New predicates which not part of input theory.
+--- These are used to indicate that the factset already
 --- contains matching substitutions for different constants
 op r1   : Const -> Fact .
 op r61  : Const Const -> Fact .
@@ -34,7 +34,7 @@ op r81  : Const Const -> Fact .
 op r82  : Const Const -> Fact .
 
 
---- a fact is also a factset
+--- A fact is also a factset
 sort FactSet .
 subsort Fact < FactSet .
 
