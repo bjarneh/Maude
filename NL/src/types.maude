@@ -42,7 +42,7 @@ op  nix  : -> FactSet [ctor] .
 op  _,_  : FactSet FactSet -> FactSet [id: nix assoc comm] .
 
 
---- prover operates on states, made up by branches
+--- Prover operates on states, made up by branches
 sort Branch .
 sort BranchList .
 subsort Branch < BranchList .
@@ -52,7 +52,7 @@ op  <_|_>  : FactSet Nat -> Branch .
 op  _::_   : BranchList BranchList -> BranchList [assoc format(d b o d) ] .
 
 
---- a state consists of a current branch, plus a list of remaining
+--- A state consists of a current branch, plus a list of remaining branches
 sort State .
 
 op  qed  : -> State .
